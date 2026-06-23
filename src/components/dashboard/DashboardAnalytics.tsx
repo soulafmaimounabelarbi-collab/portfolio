@@ -43,9 +43,9 @@ function StatCard({ icon, label, value, sub, accent }: StatCardProps) {
 }
 
 function MiniBarChart({ visits }: { visits: DailyVisit[] }) {
-  if (visits.length === 0) return null;
+  if (!visits || visits.length === 0) return null;
 
-  const maxCount = Math.max(...visits.map((v) => v.count), 1);
+  const maxCount = Math.max(...visits.map((v) => v.count ?? 0), 1);
   // Show last 14 days
   const recent = [...visits]
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -57,24 +57,38 @@ function MiniBarChart({ visits }: { visits: DailyVisit[] }) {
         <h3 className="font-display text-lg text-charcoal">Daily Visits</h3>
         <span className="text-xs text-ash font-mono">Last 14 days</span>
       </div>
-      <div className="flex items-end gap-1 h-32">
+
+      {/*
+        Important: ensure the chart row has an explicit height.
+        If this collapses to 0px, bars will be invisible.
+      */}
+      <div className="flex items-end gap-1 h-32 min-h-[128px] w-full">
         {recent.map((v) => {
-          const pct = (v.count / maxCount) * 100;
+          const count = v.count ?? 0;
+          const pct = (count / maxCount) * 100;
+
           return (
-            <div key={v.date} className="flex-1 flex flex-col items-center gap-1 group relative">
+            <div
+              key={v.date}
+              className="flex-1 flex flex-col items-center gap-1 group relative"
+            >
               {/* Tooltip */}
               <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center pointer-events-none z-10">
                 <div className="bg-charcoal text-white text-2xs rounded-lg px-2 py-1 whitespace-nowrap">
-                  {v.count} visit{v.count !== 1 ? 's' : ''}<br />
+                  {count} visit{count !== 1 ? 's' : ''}
+                  <br />
                   <span className="text-mist">{formatShortDate(v.date)}</span>
                 </div>
                 <div className="w-1.5 h-1.5 bg-charcoal rotate-45 -mt-1" />
               </div>
+
               {/* Bar */}
               <div
                 className="w-full rounded-t-md bg-gradient-to-t from-roseDeep to-rose transition-all duration-300"
-                style={{ height: `${Math.max(pct, 4)}%` }}
+                // Use absolute pixel height (less likely to collapse)
+                style={{ height: `${Math.max((pct / 100) * 128, 6)}px` }}
               />
+
               {/* Label */}
               <span className="text-2xs text-ash rotate-0 whitespace-nowrap">
                 {formatShortDate(v.date).split(' ')[0]}
@@ -86,6 +100,7 @@ function MiniBarChart({ visits }: { visits: DailyVisit[] }) {
     </DashCard>
   );
 }
+
 
 function VisitTable({ visits }: { visits: DailyVisit[] }) {
   if (visits.length === 0) return null;
